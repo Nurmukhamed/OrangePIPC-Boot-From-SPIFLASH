@@ -1,5 +1,5 @@
 # Download base image ubuntu 20.04
-FROM ubuntu:20.04
+FROM ubuntu:20.04 as basebuilder
 
 # Set OCI-compliant labels
 LABEL org.opencontainers.image.title="orange-pi-pc-uboot" \
@@ -64,7 +64,22 @@ COPY config u-boot-2022.01/.config
 
 # Make image
 RUN cd u-boot-2022.01 &&\
-    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- && \
-    cp ./u-boot-sunxi-with-spl.bin /output
+    make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf-
 
-CMD ["/bin/sh", "-c", "cd /app/u-boot-2022.01 && make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- && cp ./u-boot-sunxi-with-spl.bin /output"]
+FROM ubuntu:20.04 AS final
+
+# Set OCI-compliant labels
+LABEL org.opencontainers.image.title="orange-pi-pc-uboot" \
+      org.opencontainers.image.version="2022.02" \
+      org.opencontainers.image.description="A simple docker container to build u-boot image for OrangePI PC" \
+      org.opencontainers.image.authors="Nurmukhamed Artykaly <nurmukhamed.artykaly@hdfilm.kz>" \
+      org.opencontainers.image.licenses="GPLv3" \
+      org.opencontainers.image.source="https://github.com/Nurmukhamed/OrangePIPC-Boot-From-SPIFLASH" \
+      org.opencontainers.image.url="https://github.com/Nurmukhamed/OrangePIPC-Boot-From-SPIFLASH"
+
+# Disable Prompt During Packages Installation
+ARG DEBIAN_FRONTEND=noninteractive
+
+COPY --from=basebuilder /app/u-boot-2022.01/u-boot-sunxi-with-spl.bin /u-boot-sunxi-with-spl.bin
+
+CMD ["/bin/sh", "-c", "cp /u-boot-sunxi-with-spl.bin /output"]
